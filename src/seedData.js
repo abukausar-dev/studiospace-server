@@ -1,0 +1,200 @@
+const photo = (category, number) => {
+    return `https://picsum.photos/seed/${category}-${number}/1200/800`;
+};
+
+const IMAGES_PER_CATEGORY = 4;
+
+const makeGallery = (category, start) => {
+    const gallery = [];
+    for (let i = 0; i < IMAGES_PER_CATEGORY; i++) {
+        const number = ((start + i) % IMAGES_PER_CATEGORY) + 1;
+        gallery.push(photo(category, number));
+    }
+    return gallery;
+};
+
+const users = [
+    { name: "Alex Examiner", email: "examiner@example.com", password: "Examiner123", image: "https://i.pravatar.cc/150?img=12" },
+    { name: "Maya Chen", email: "maya.host@example.com", password: "Studio123", image: "https://i.pravatar.cc/150?img=47" },
+    { name: "Rafi Ahmed", email: "rafi.host@example.com", password: "Studio123", image: "https://i.pravatar.cc/150?img=33" },
+    { name: "Lina Hassan", email: "lina.host@example.com", password: "Studio123", image: "https://i.pravatar.cc/150?img=45" },
+    { name: "Sam Rivera", email: "sam.creator@example.com", password: "Studio123", image: "https://i.pravatar.cc/150?img=15" },
+];
+
+const studios = [
+    {
+        title: "Lumen Cyclorama Studio",
+        category: "photo-studio",
+        hourlyRate: 45,
+        securityDeposit: 100,
+        maxCapacity: 12,
+        location: "Bangsar, Kuala Lumpur",
+        amenities: ["Cyclorama Wall", "Softbox Lighting", "Backdrops", "Changing Room", "Wi-Fi", "Air Conditioning"],
+        overview: "A 600 sq ft white cyclorama wall with continuous and strobe lighting, built for fashion, product and portrait shoots. A north-facing window wall adds soft daylight, and a private changing room sits right beside the set.",
+        ownerIndex: 1,
+        photoStart: 0,
+        daysOld: 52,
+    },
+    {
+        title: "Grain & Gel Film Stage",
+        category: "film-stage",
+        hourlyRate: 120,
+        securityDeposit: 300,
+        maxCapacity: 40,
+        location: "Cyberjaya, Selangor",
+        amenities: ["Sound Stage", "Green Screen", "Lighting Grid", "Green Room", "Loading Dock", "Parking", "Air Conditioning"],
+        overview: "A 2,400 sq ft soundproofed stage with a 14-foot lighting grid, a green screen wall and a loading dock for large sets. It suits short films, music videos and commercials that need full control over light and sound.",
+        ownerIndex: 2,
+        photoStart: 0,
+        daysOld: 47,
+    },
+    {
+        title: "The Quiet Mic Podcast Lounge",
+        category: "podcast-lounge",
+        hourlyRate: 28,
+        securityDeposit: 50,
+        maxCapacity: 6,
+        location: "Dhanmondi, Dhaka",
+        amenities: ["Soundproofing", "Condenser Microphones", "Headphones", "Mixing Console", "Lounge Area", "Wi-Fi"],
+        overview: "A four-seat podcast room treated with acoustic panels, with four broadcast microphones and a mixing desk. Guests can wait in the lounge area before recording, and the room stays quiet even during busy hours.",
+        ownerIndex: 3,
+        photoStart: 0,
+        daysOld: 41,
+    },
+    {
+        title: "Velvet Room Music Suite",
+        category: "music-suite",
+        hourlyRate: 38,
+        securityDeposit: 80,
+        maxCapacity: 8,
+        location: "George Town, Penang",
+        amenities: ["Baby Grand Piano", "Drum Kit", "Mixing Console", "Vocal Booth", "Studio Monitors", "Soundproofing"],
+        overview: "A recording suite with a baby grand piano, a drum kit and a mixing console in a fully soundproofed room. Producers get studio monitors and a separate vocal booth for clean takes.",
+        ownerIndex: 1,
+        photoStart: 0,
+        daysOld: 36,
+    },
+    {
+        title: "Clay & Canvas Workshop",
+        category: "workshop",
+        hourlyRate: 22,
+        securityDeposit: 40,
+        maxCapacity: 15,
+        location: "Petaling Jaya, Selangor",
+        amenities: ["Pottery Wheels", "Easels", "Large Tables", "Ventilation", "Storage Lockers", "Wi-Fi"],
+        overview: "A bright workshop with pottery wheels, easels and large tables, set up for classes, art jams and small exhibitions. Storage lockers let groups leave their work to dry between sessions.",
+        ownerIndex: 2,
+        photoStart: 0,
+        daysOld: 33,
+    },
+    {
+        title: "Halo Portrait Loft",
+        category: "photo-studio",
+        hourlyRate: 35,
+        securityDeposit: 80,
+        maxCapacity: 8,
+        location: "Gulshan, Dhaka",
+        amenities: ["Natural Light", "Softbox Lighting", "Backdrops", "Props", "Kitchenette", "Wi-Fi"],
+        overview: "A top-floor loft with tall windows, white walls and a small prop library for portrait and lifestyle sessions. The kitchenette makes long shoots with clients more comfortable.",
+        ownerIndex: 3,
+        photoStart: 1,
+        daysOld: 28,
+    },
+    {
+        title: "Northside Sound Stage",
+        category: "film-stage",
+        hourlyRate: 95,
+        securityDeposit: 250,
+        maxCapacity: 30,
+        location: "Johor Bahru, Johor",
+        amenities: ["Sound Stage", "Green Screen", "Teleprompter", "4K Cameras", "Green Room", "Parking"],
+        overview: "A 1,800 sq ft stage with a green screen, a teleprompter and two 4K cameras available on site. A private green room and ample parking keep crews comfortable on long production days.",
+        ownerIndex: 0,
+        photoStart: 1,
+        daysOld: 24,
+    },
+    {
+        title: "Signal Podcast Booth",
+        category: "podcast-lounge",
+        hourlyRate: 20,
+        securityDeposit: 40,
+        maxCapacity: 4,
+        location: "Bukit Bintang, Kuala Lumpur",
+        amenities: ["Soundproofing", "Condenser Microphones", "Headphones", "Video Recording", "Wi-Fi"],
+        overview: "A compact video podcast booth in central Kuala Lumpur with two cameras, three microphones and a clean backdrop. Recordings come out ready to publish, and the soundproofing blocks traffic noise.",
+        ownerIndex: 1,
+        photoStart: 1,
+        daysOld: 19,
+    },
+    {
+        title: "Tape Hiss Rehearsal Rooms",
+        category: "music-suite",
+        hourlyRate: 18,
+        securityDeposit: 30,
+        maxCapacity: 10,
+        location: "Banani, Dhaka",
+        amenities: ["Drum Kit", "Guitar Amps", "PA System", "Soundproofing", "Air Conditioning"],
+        overview: "Three rehearsal rooms with drum kits, guitar amps and a PA system, built for bands that need a reliable weekly slot. The walls are acoustically treated so neighbouring rooms stay quiet.",
+        ownerIndex: 2,
+        photoStart: 1,
+        daysOld: 15,
+    },
+    {
+        title: "Mosaic Maker Space",
+        category: "workshop",
+        hourlyRate: 25,
+        securityDeposit: 60,
+        maxCapacity: 20,
+        location: "Ipoh, Perak",
+        amenities: ["Sewing Machines", "Cutting Tables", "Easels", "Ventilation", "Storage Lockers"],
+        overview: "A large workshop for textile, print and mixed-media projects, with sewing machines, cutting tables and easels. Good ventilation and storage lockers make it practical for multi-day courses.",
+        ownerIndex: 0,
+        photoStart: 1,
+        daysOld: 11,
+    },
+    {
+        title: "Golden Hour Garden Studio",
+        category: "photo-studio",
+        hourlyRate: 32,
+        securityDeposit: 70,
+        maxCapacity: 10,
+        location: "Shah Alam, Selangor",
+        amenities: ["Natural Light", "Outdoor Garden", "Props", "Changing Room", "Parking", "Wi-Fi"],
+        overview: "A garden studio with a covered patio and a soft-lit interior, ideal for natural-light portraits and brand shoots. Late afternoon sun makes the lawn glow, and parking is free on site.",
+        ownerIndex: 3,
+        photoStart: 2,
+        daysOld: 7,
+    },
+    {
+        title: "Echo Chamber Voice Booth",
+        category: "podcast-lounge",
+        hourlyRate: 24,
+        securityDeposit: 40,
+        maxCapacity: 3,
+        location: "Subang Jaya, Selangor",
+        amenities: ["Soundproofing", "Large-Diaphragm Microphone", "Pop Filter", "Studio Monitors", "Ventilation"],
+        overview: "A treated voiceover booth with a large-diaphragm microphone, a pop filter and a monitor setup for narration, dubbing and audiobooks. The booth fits up to three people and has its own ventilation.",
+        ownerIndex: 1,
+        photoStart: 2,
+        daysOld: 4,
+    },
+];
+
+const reviewComments = [
+    "Clean, spacious and the lighting setup saved us an hour of prep. Would book again.",
+    "The host was responsive and the space matched the photos exactly.",
+    "Great value for the price. Easy check-in and everything was ready on arrival.",
+    "Sound insulation was excellent, with no outside noise at all during our session.",
+    "Perfect for a small crew. Plenty of power outlets and a comfortable break area.",
+    "Loved the natural light in the afternoon. The props were a nice bonus.",
+    "Equipment was in good condition and the host showed us how everything works.",
+    "A little hard to find the first time, but the space itself is fantastic.",
+    "We ran a four-hour workshop here and the layout worked really well.",
+    "Booking was simple and the final price matched what was shown. Smooth experience.",
+    "Quiet, well kept and air-conditioned. Our recording went smoothly.",
+    "Good space overall. Parking nearby was limited, so arrive a little early.",
+];
+
+const ratingPool = [5, 5, 4, 5, 4, 5, 4, 5, 5, 4, 5, 4];
+
+export { users, studios, reviewComments, ratingPool, makeGallery };
