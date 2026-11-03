@@ -1,126 +1,200 @@
 import { ObjectId } from "mongodb";
 import { db } from "../config/database.js";
 
+// Helper: Escape regex special characters to prevent regex injection
 const escapeRegex = (text) => {
-    return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 };
 
-const getStudios = async (req, res) => {
-    const search = req.query.search;
-    const category = req.query.category;
-    const minPrice = req.query.minPrice;
-    const maxPrice = req.query.maxPrice;
-    const sort = req.query.sort;
+export const getStudios = async (req, res) => {
+    try {
+        const {
+            page = 1,
+            limit = 9,
+            search,
+            category,
+            minPrice,
+            maxPrice,
+            sort = "newest",
+        } = req.query;
 
-    let page = Number(req.query.page) || 1;
-    let limit = Number(req.query.limit) || 9;
-    if (page < 1) page = 1;
-    if (limit < 1) limit = 9;
-    if (limit > 24) limit = 24;
+        const pageNum = Math.max(1, parseInt(page, 10) || 1);
+        const limitNum = Math.min(24, Math.max(1, parseInt(limit, 10) || 9));
+        const skip = (pageNum - 1) * limitNum;
 
-    const filter = {};
+        const filter = {};
 
-    if (search && typeof search === "string") {
-        const safeSearch = escapeRegex(search);
-        filter.$or = [
-            { title: { $regex: safeSearch, $options: "i" } },
-            { location: { $regex: safeSearch, $options: "i" } },
-        ];
+        // 1. Search by title or location (Case-insensitive)
+        if (search && search.trim() !== "") {
+            const searchRegex = new RegExp(escapeRegex(search.trim()), "i");
+            filter.$or = [{ title: searchRegex }, { location: searchRegex }];
+        }
+
+        // 2. Category Filter (Exact slug match)
+        if (category && category.trim() !== "" && category !== "all") {
+            filter.category = category.trim();
+        }
+
+        // 3. Price Filter (Safely handles single or combined ranges)
+        const hasMin = minPrice !== undefined && minPrice !== "" && !isNaN(Number(minPrice));
+        const hasMax = maxPrice !== undefined && maxPrice !== "" && !isNaN(Number(maxPrice));
+
+        if (hasMin && hasMax) {
+            filter.hourlyRate = {
+                $gte: Number(minPrice),
+                $lte: Number(maxPrice),
+            };
+        } else if (hasMin) {
+            filter.hourlyRate = { $gte: Number(minPrice) };
+        } else if (hasMax) {
+            filter.hourlyRate = { $lte: Number(maxPrice) };
+        }
+
+        // 4. Sorting logic
+        let sortCriteria = { createdAt: -1 }; // default: newest
+        if (sort === "price-low") {
+            sortCriteria = { hourlyRate: 1 };
+        } else if (sort === "price-high") {
+            sortCriteria = { hourlyRate: -1 };
+        } else if (sort === "rating") {
+            sortCriteria = { rating: -1, reviewCount: -1 };
+        }
+
+        const total = await db.collection("studios").countDocuments(filter);
+        const studios = await db
+            .collection("studios")
+            .find(filter)
+            .sort(sortCriteria)
+            .skip(skip)
+            .limit(limitNum)
+            .toArray();
+
+        return res.status(200).json({
+            success: true,
+            data: studios,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total,
+                totalPages: Math.ceil(total / limitNum) || 1,
+            },
+        });
+    } catch (error) {
+        console.error("Error in getStudios controller:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch studios",
+            error: error.message,
+        });
     }
-
-    if (category && typeof category === "string") {
-        filter.category = category;
-    }
-
-    if (minPrice || maxPrice) {
-        filter.hourlyRate = {};
-        if (minPrice) filter.hourlyRate.$gte = Number(minPrice);
-        if (maxPrice) filter.hourlyRate.$lte = Number(maxPrice);
-    }
-
-    let sortOption = { createdAt: -1 };
-    if (sort === "price-low") sortOption = { hourlyRate: 1 };
-    if (sort === "price-high") sortOption = { hourlyRate: -1 };
-    if (sort === "rating") sortOption = { rating: -1, createdAt: -1 };
-
-    const studios = db.collection("studios");
-    const total = await studios.countDocuments(filter);
-    const skip = (page - 1) * limit;
-
-    const data = await studios
-        .find(filter)
-        .sort(sortOption)
-        .skip(skip)
-        .limit(limit)
-        .toArray();
-
-    res.json({
-        success: true,
-        data: data,
-        pagination: {
-            page: page,
-            limit: limit,
-            total: total,
-            totalPages: Math.ceil(total / limit),
-        },
-    });
 };
 
-const getFeaturedStudios = async (req, res) => {
-    const data = await db
-        .collection("studios")
-        .find({})
-        .sort({ rating: -1, createdAt: -1 })
-        .limit(6)
-        .toArray();
+export const getFeaturedStudios = async (req, res) => {
+    try {
+        const featured = await db
+            .collection("studios")
+            .find({})
+            .sort({ rating: -1, createdAt: -1 })
+            .limit(6)
+            .toArray();
 
-    res.json({ success: true, data: data });
-};
-
-const getStudioById = async (req, res) => {
-    const id = req.params.id;
-
-    if (!ObjectId.isValid(id)) {
-        return res.status(404).json({ success: false, message: "Studio not found" });
+        return res.status(200).json({
+            success: true,
+            data: featured,
+        });
+    } catch (error) {
+        console.error("Error in getFeaturedStudios:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch featured studios",
+        });
     }
+};
 
-    const studio = await db.collection("studios").findOne({ _id: new ObjectId(id) });
+export const getStudioById = async (req, res) => {
+    try {
+        const { id } = req.params;
 
-    if (!studio) {
-        return res.status(404).json({ success: false, message: "Studio not found" });
+        if (!ObjectId.isValid(id)) {
+            return res.status(404).json({
+                success: false,
+                message: "Studio not found (Invalid ID format)",
+            });
+        }
+
+        const studio = await db.collection("studios").findOne({ _id: new ObjectId(id) });
+
+        if (!studio) {
+            return res.status(404).json({
+                success: false,
+                message: "Studio not found",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: studio,
+        });
+    } catch (error) {
+        console.error("Error in getStudioById:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch studio details",
+        });
     }
-
-    res.json({ success: true, data: studio });
 };
 
-const getStudioReviews = async (req, res) => {
-    const id = req.params.id;
+export const getStudioReviews = async (req, res) => {
+    try {
+        const { id } = req.params;
 
-    if (!ObjectId.isValid(id)) {
-        return res.status(404).json({ success: false, message: "Studio not found" });
+        if (!ObjectId.isValid(id)) {
+            return res.status(404).json({
+                success: false,
+                message: "Invalid Studio ID",
+            });
+        }
+
+        const reviews = await db
+            .collection("reviews")
+            .find({ studioId: id })
+            .sort({ createdAt: -1 })
+            .toArray();
+
+        return res.status(200).json({
+            success: true,
+            data: reviews,
+        });
+    } catch (error) {
+        console.error("Error in getStudioReviews:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch studio reviews",
+        });
     }
-
-    const reviews = await db
-        .collection("reviews")
-        .find({ studioId: id })
-        .sort({ createdAt: -1 })
-        .toArray();
-
-    res.json({ success: true, data: reviews });
 };
 
-const getPlatformStats = async (req, res) => {
-    const studios = await db.collection("studios").countDocuments();
-    const bookings = await db.collection("bookings").countDocuments();
-    const creators = await db.collection("user").countDocuments();
+export const getPlatformStats = async (req, res) => {
+    try {
+        const [studiosCount, bookingsCount, creatorsCount] = await Promise.all([
+            db.collection("studios").countDocuments(),
+            db.collection("bookings").countDocuments(),
+            db.collection("user").countDocuments(),
+        ]);
 
-    res.json({ success: true, data: { studios, bookings, creators } });
-};
-
-export {
-    getStudios,
-    getFeaturedStudios,
-    getStudioById,
-    getStudioReviews,
-    getPlatformStats,
+        return res.status(200).json({
+            success: true,
+            data: {
+                studios: studiosCount,
+                bookings: bookingsCount,
+                creators: creatorsCount,
+            },
+        });
+    } catch (error) {
+        console.error("Error in getPlatformStats:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch platform stats",
+        });
+    }
 };
